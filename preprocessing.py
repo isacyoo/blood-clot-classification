@@ -6,7 +6,8 @@ import cv2
 import tifffile
 import tqdm
 import matplotlib.pyplot as plt
-
+from openslide import OpenSlide
+import numpy as np
 
 if __name__ == "__main__":
     INPUT_DIR = '/kaggle/input/mayo-clinic-strip-ai'
@@ -18,27 +19,44 @@ if __name__ == "__main__":
     os.mkdir(f"{OUTPUT}/test")
     os.mkdir(f"{OUTPUT}/train")
 
+    IMAGE_SIZE = 512
     for i in tqdm.tqdm(range(len(test_csv))):
-        img = tifffile.imread(f"{dir}/test/{test_csv.iloc[i].image_id}.tif")
-        img = cv2.resize(img, (1024,1024))
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)    
-        cv2.imwrite(f"{OUTPUT}/test/{test_csv.iloc[i].image_id}.jpg", img)
+        slides = OpenSlide(f"{INPUT_DIR}/test/{test_csv.iloc[i].image_id}.tif")
+        rows = int(slides.properties["openslide.level[0].height"]) // IMAGE_SIZE
+        cols = int(slides.properties["openslide.level[0].width"]) // IMAGE_SIZE
         
-        del img
-        gc.collect()
-        
-    for i in tqdm.tqdm(range(len(test_csv))):
-        img = tifffile.imread(f"{INPUT_DIR}/test/{test_csv.iloc[i].image_id}.tif")
-        img = cv2.resize(img, (1024,1024))
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)    
-        cv2.imwrite(f"{OUTPUT}/test/{test_csv.iloc[i].image_id}.jpg", img)
-        
-        del img
-        gc.collect()
-        
-    aa = cv2.imread(f"{OUTPUT}/test/{test_csv.iloc[0].image_id}.jpg")
-    plt.imshow(aa)
-    plt.show()
+        for j in range(rows):
+            for k in range(cols):
+                tile = slides.read_region((IMAGE_SIZE*j,IMAGE_SIZE*k), 0, (IMAGE_SIZE, IMAGE_SIZE))
+                arr = np.asarray(tile)
+                mean = arr.mean()
+                std = arr.std()
+                
+                if mean < 200 and std > 50:
+                    tile.save(f"{OUTPUT}/test/{test_csv.iloc[i].image_id}_{j}_{k}.png", compress_level=0)
+                break    
 
-    os.listdir('test')
-    gc.collect()
+    train = pd.DataFrame(columns = ["image_id", "label"])
+    lines = []
+    #for i in tqdm.tqdm(range(len(train_csv))):
+    for i in range(1):
+        slides = OpenSlide(f"{INPUT_DIR}/train/{train_csv.iloc[i].image_id}.tif")
+        rows = int(slides.properties["openslide.level[0].height"]) // IMAGE_SIZE
+        cols = int(slides.properties["openslide.level[0].width"]) // IMAGE_SIZE
+        
+        for j in tqdm.tqdm(range(rows)):
+            for k in range(cols):
+                tile = slides.read_region((IMAGE_SIZE*j,IMAGE_SIZE*k), 0, (IMAGE_SIZE, IMAGE_SIZE))
+                arr = np.asarray(tile)
+                mean = arr.mean()
+                std = arr.std()
+                
+                if mean < 200 and std > 50:
+                    tile.save(f"{OUTPUT}/train/{train_csv.iloc[i].image_id}_{j}_{k}.png", compress_level=0)
+                    
+                lines.append({"image_id":f"{OUTPUT}/train/{train_csv.iloc[i].image_id}_{j}_{k}.png", 
+                            "label": train_csv.iloc[i].label})
+                
+        train = train.append(lines)
+        lines = []
+    train.to_csv(f"{OUTPUT}/train/train.csv")

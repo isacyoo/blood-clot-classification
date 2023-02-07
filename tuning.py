@@ -9,7 +9,6 @@ from data_processing import BloodClotDataModule
 from config import Config
 
 # Optuna objective function to tune nuisance hyperparameters
-
 def tune_nuisance_hyperparameters(trial: optuna.trial.Trial, config: Config) -> float:
     
     # model

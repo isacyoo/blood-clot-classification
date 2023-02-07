@@ -5,6 +5,7 @@ import tqdm
 import pandas as pd
 
 # Originally by https://github.com/mxl1990/tsne-pytorch
+# Used to visualise high-dimensional embeddings produced by our ResNet backbone that is trained via metric learning
 
 def Hbeta_torch(D, beta=1.0):
     P = torch.exp(-D.clone() * beta)

@@ -10,3 +10,4 @@ tqdm
 opencv-python
 matplotlib
 optuna>=2.10.1
+openslide-python
