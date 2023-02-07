@@ -1,0 +1,12 @@
+torch==1.9.1
+transformers>=4.20.1
+pytorch_lightning>=1.7.2
+pandas
+Pillow
+albumentations>=1.2.1
+scikit-learn
+torchmetrics
+tqdm
+opencv-python
+matplotlib
+optuna>=2.10.1
